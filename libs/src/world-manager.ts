@@ -8,30 +8,26 @@ import { CylinderContainer } from "./cylinder-container";
 import { BaseAggregate } from "./base-aggregate";
 import { Sample } from "./sample";
 import { Notch } from "./notch";
+import { Cuboid } from "./cuboid";
+import { Cylinder } from "./cylinder";
 
 export class WorldManager {
   private canvas?: HTMLCanvasElement;
   private engine: Engine | NullEngine;
   private isNullEngine: boolean;
   private scene?: Scene;
-  private width: number;
-  private height: number;
-  private depth: number;
   private baseAggregateArray: BaseAggregate[];
+  private shape: Cuboid | Cylinder;
 
   constructor(
     canvas: HTMLCanvasElement | undefined,
     isNullEngine: boolean,
-    width: number,
-    height: number,
-    depth: number,
+    shape: Cuboid | Cylinder,
     baseAggregateArray: BaseAggregate[]
   ) {
     this.isNullEngine = isNullEngine;
     this.canvas = canvas;
-    this.width = width;
-    this.height = height;
-    this.depth = depth;
+    this.shape = shape;
     this.baseAggregateArray = baseAggregateArray;
     this.engine =
       this.isNullEngine || !this.canvas
@@ -45,20 +41,13 @@ export class WorldManager {
   async run() {
     const physicsEngine = await this.getInitializedHavok();
     const scene = this.createScene(physicsEngine);
-    const container = new CuboidContainer(
-      this.isNullEngine,
-      this.width,
-      this.height,
-      this.depth
-    );
+    const container =
+      this.shape instanceof Cuboid
+        ? new CuboidContainer(this.isNullEngine, this.shape)
+        : new CylinderContainer(this.isNullEngine, this.shape);
 
-    // const container = new CylinderContainer(
-    //   this.isNullEngine,
-    //   this.width / 2,
-    //   this.height
-    // );
     new Camera(container);
-    new Notch(this.isNullEngine, "z", 5, 10, container);
+    // new Notch(this.isNullEngine, "z", 5, 10, container);
     new Sample(
       this.baseAggregateArray,
       scene,
