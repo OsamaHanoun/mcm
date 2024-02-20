@@ -1,0 +1,8 @@
+{
+  "name": "mcm",
+  "private": true,
+  "workspaces": [
+    "client",
+    "libs"
+  ]
+}

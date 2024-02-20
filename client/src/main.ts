@@ -1,24 +1,108 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import "./style.css";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
+const offscreen = canvas.transferControlToOffscreen();
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+  type: "module",
+});
+
+worker.postMessage(
+  {
+    messageName: "init",
+    canvas: offscreen,
+    height: canvas.clientHeight,
+  },
+  [offscreen]
+);
+
+document.getElementById("init")?.addEventListener("click", (e) => {
+  disableButton(e);
+
+  worker.postMessage(
+    {
+      messageName: "init",
+      canvas: offscreen,
+      height: canvas.clientHeight,
+    },
+    [offscreen]
+  );
+});
+
+worker.onmessage = (e: MessageEvent<Message>) => {
+  const { messageName } = e.data;
+
+  switch (messageName) {
+    case "stlFile":
+      downloadSTL(e.data.stlFile);
+      break;
+
+    default:
+      break;
+  }
+};
+
+window.addEventListener("resize", () => {
+  worker.postMessage({
+    messageName: "resize",
+    width: canvas.clientWidth,
+    height: canvas.clientHeight,
+  });
+});
+
+document.getElementById("pauseSimulation")?.addEventListener("click", () => {
+  worker.postMessage({
+    messageName: "pauseSimulation",
+  });
+});
+
+document
+  .getElementById("stopAddingAggregates")
+  ?.addEventListener("click", () => {
+    worker.postMessage({
+      messageName: "stopAddingAggregates",
+    });
+  });
+
+document
+  .getElementById("presumeAddingAggregates")
+  ?.addEventListener("click", () => {
+    worker.postMessage({
+      messageName: "presumeAddingAggregates",
+    });
+  });
+
+document
+  .getElementById("activatePhysicsViewer")
+  ?.addEventListener("click", () => {
+    worker.postMessage({
+      messageName: "activatePhysicsViewer",
+    });
+  });
+
+document.getElementById("download")?.addEventListener("click", () => {
+  worker.postMessage({
+    messageName: "pauseSimulation",
+  });
+
+  worker.postMessage({
+    messageName: "getMeshes",
+  });
+});
+
+function disableButton(event: Event) {
+  (event.target as HTMLButtonElement).disabled = true;
+}
+
+function downloadSTL(stlFile: any) {
+  const blob = new Blob([stlFile], { type: "application/octet-stream" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "sample.stl";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 7000);
+}
