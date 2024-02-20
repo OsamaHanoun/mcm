@@ -41,13 +41,9 @@ export class Notch {
     if (this.container instanceof CuboidContainer) {
       width = this.direction === "z" ? this.width : this.container.depth;
       depth = this.direction === "x" ? this.width : this.container.width;
-      positionX = this.container.width / 2;
-      positionZ = this.container.depth / 2;
     } else if (this.container instanceof CylinderContainer) {
       width = this.direction === "z" ? this.width : this.container.radius * 2;
       depth = this.direction === "x" ? this.width : this.container.radius * 2;
-      positionX = this.container.radius;
-      positionZ = this.container.radius;
     }
 
     const mesh = MeshBuilder.CreateBox("notch", {
