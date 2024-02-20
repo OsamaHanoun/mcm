@@ -21,7 +21,7 @@ export class AggregateGenerator {
       vertex: vertices,
       face: faces,
     };
-    const Mesh = MeshBuilder.CreatePolyhedron(crypto.randomUUID(), {
+    const Mesh = MeshBuilder.CreatePolyhedron('aggregate', {
       custom: heptagonalPrism,
     });
     Mesh.rotation = this.getRandomRotation();

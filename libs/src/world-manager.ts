@@ -10,6 +10,7 @@ import { Sample } from "./sample";
 import { Notch } from "./notch";
 import { Cuboid } from "./cuboid";
 import { Cylinder } from "./cylinder";
+import { Slicer } from "./slicer";
 
 export class WorldManager {
   private canvas?: HTMLCanvasElement;
@@ -40,7 +41,7 @@ export class WorldManager {
 
   async run() {
     const physicsEngine = await this.getInitializedHavok();
-    const scene = this.createScene(physicsEngine);
+    this.scene = this.createScene(physicsEngine);
     const container =
       this.shape instanceof Cuboid
         ? new CuboidContainer(this.isNullEngine, this.shape)
@@ -50,7 +51,7 @@ export class WorldManager {
     // new Notch(this.isNullEngine, "z", 5, 10, container);
     new Sample(
       this.baseAggregateArray,
-      scene,
+      this.scene,
       physicsEngine,
       this.isNullEngine,
       container
@@ -62,7 +63,7 @@ export class WorldManager {
     }
 
     this.engine.runRenderLoop(() => {
-      scene.render();
+      this.scene?.render();
     });
   }
 
@@ -74,13 +75,19 @@ export class WorldManager {
   }
 
   pauseSimulation() {
-    // Stop the rendering loop
-    this.engine.stopRenderLoop();
+    this.scene?.executeOnceBeforeRender(() => {
+      this.engine.stopRenderLoop();
+      if (this.scene) {
+        new Slicer(this.scene, this.shape).apply();
+      }
 
-    // Disable the physics engine (if physics is enabled)
-    if (this.scene?.isPhysicsEnabled()) {
-      this.scene.disablePhysicsEngine();
-    }
+      this.scene?.meshes.forEach((mesh) => {
+        if (mesh.name !== "sliced") {
+          mesh.physicsBody?.dispose();
+          mesh.dispose();
+        }
+      });
+    });
   }
 
   private async getInitializedHavok() {
