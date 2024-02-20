@@ -19,16 +19,18 @@ import { AggregateGenerator } from "./aggregate-generator";
 import { BaseAggregate } from "./base-aggregate";
 import { CuboidContainer } from "./cuboid-container";
 import { shuffle } from "lodash-es";
+import { CylinderContainer } from "./cylinder-container";
 
 export class Sample {
   private baseAggregateArray: BaseAggregate[];
-  private container: CuboidContainer;
+  private container: CuboidContainer | CylinderContainer;
   private grid = { x: 0, y: 0, z: 0 };
   private maxDimension = 0;
   private totalCount = 0;
   private totalVolumeFraction = 0;
   private totalAggregatesVolume = 0;
   private currentLocation = { x: 0, y: 0, z: 0 };
+  private startLocation = { x: 0, z: 0 };
   private scene: Scene;
   private meshToPhysicsBodyMap = new Map<PhysicsBody, Mesh>();
   private aggregatesTracker: string[] = [];
@@ -40,7 +42,7 @@ export class Sample {
     scene: Scene,
     physicsEngine: HavokPlugin,
     isNullEngine: boolean,
-    container: CuboidContainer
+    container: CuboidContainer | CylinderContainer
   ) {
     this.baseAggregateArray = baseAggregateArray;
     this.container = container;
@@ -50,6 +52,7 @@ export class Sample {
 
     this.calculateMaxDimension();
     this.calculateGrid();
+    this.calculateStartLocation();
     this.addCountParam();
     this.calculateTotalCount();
     this.addTrigger();
@@ -79,7 +82,7 @@ export class Sample {
       this.scene
     );
     aggregateBody.shape = new PhysicsShapeConvexHull(aggregateMesh, this.scene);
-    aggregateBody.shape.material = { friction: 10, restitution: 0 };
+    aggregateBody.shape.material = { friction: 0.3, restitution: 0 };
 
     this.meshToPhysicsBodyMap.set(aggregateBody, aggregateMesh);
 
@@ -87,12 +90,11 @@ export class Sample {
   }
 
   addToVolumeFraction(mesh: Mesh) {
-    const { width, height, depth } = this.container;
-
+    const containerVolume = this.container.volume;
     const volume = AggregateGenerator.calculateVolume(mesh);
     this.totalAggregatesVolume += volume ?? 0;
     this.totalVolumeFraction =
-      (this.totalAggregatesVolume / (width * height * depth)) * 100;
+      (this.totalAggregatesVolume / containerVolume) * 100;
     console.log(this.totalVolumeFraction);
   }
 
@@ -111,12 +113,34 @@ export class Sample {
   }
 
   private calculateGrid() {
-    const { width, height, depth } = this.container;
-    this.grid = {
-      x: Math.floor(width / this.maxDimension),
-      y: Math.ceil(height / this.maxDimension),
-      z: Math.floor(depth / this.maxDimension),
-    };
+    if (this.container instanceof CuboidContainer) {
+      const { width, height, depth } = this.container;
+      this.grid = {
+        x: Math.floor(width / this.maxDimension),
+        y: Math.ceil(height / this.maxDimension),
+        z: Math.floor(depth / this.maxDimension),
+      };
+    } else if (this.container instanceof CylinderContainer) {
+      const { height, radius } = this.container;
+      const edgeLength = 2 * radius;
+      this.grid = {
+        x: Math.floor(edgeLength / this.maxDimension),
+        y: Math.ceil(height / this.maxDimension),
+        z: Math.floor(edgeLength / this.maxDimension),
+      };
+    }
+  }
+
+  private calculateStartLocation() {
+    if (this.container instanceof CuboidContainer) {
+      const { width, depth } = this.container;
+      this.startLocation.x = -width / 2;
+      this.startLocation.z = -depth / 2;
+    } else if (this.container instanceof CylinderContainer) {
+      const { radius } = this.container;
+      this.startLocation.x = -radius;
+      this.startLocation.z = -radius;
+    }
   }
 
   private calculateTotalCount() {
@@ -165,11 +189,15 @@ export class Sample {
     }
 
     const x =
-      this.currentLocation.x * this.maxDimension + 0.5 * this.maxDimension;
+      this.currentLocation.x * this.maxDimension +
+      0.5 * this.maxDimension +
+      this.startLocation.x;
     const y =
       this.currentLocation.y * this.maxDimension + 0.5 * this.maxDimension;
     const z =
-      this.currentLocation.z * this.maxDimension + 0.5 * this.maxDimension;
+      this.currentLocation.z * this.maxDimension +
+      0.5 * this.maxDimension +
+      this.startLocation.z;
 
     return new Vector3(x, y, z);
   }
@@ -196,10 +224,18 @@ export class Sample {
 
   private addTrigger() {
     const thickness = 1;
-    const { width, height, depth } = this.container;
+    const position = new Vector3(0, this.container.height + thickness / 2, 0);
+    const dimensions = new Vector3(1, thickness, 1);
 
-    const position = new Vector3(width / 2, height + thickness / 2, depth / 2);
-    const dimensions = new Vector3(width, thickness, depth);
+    if (this.container instanceof CuboidContainer) {
+      const { width, depth } = this.container;
+      dimensions.x = width;
+      dimensions.z = depth;
+    } else if (this.container instanceof CylinderContainer) {
+      const { radius } = this.container;
+      dimensions.x = radius * 2;
+      dimensions.z = radius * 2;
+    }
 
     if (!this.isNullEngine) {
       const triggerRepresentation = MeshBuilder.CreateBox("triggerMesh", {
