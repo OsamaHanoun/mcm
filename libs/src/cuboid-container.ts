@@ -6,23 +6,21 @@ import {
   StandardMaterial,
   Vector3,
 } from "babylonjs";
+import { Cuboid } from "./cuboid";
 
 export class CuboidContainer {
   private isNullEngine: boolean;
   readonly width: number;
   readonly height: number;
   readonly depth: number;
+  readonly volume: number;
 
-  constructor(
-    isNullEngine: boolean,
-    width: number,
-    height: number,
-    depth: number
-  ) {
+  constructor(isNullEngine: boolean, shape: Cuboid) {
     this.isNullEngine = isNullEngine;
-    this.width = width;
-    this.height = height;
-    this.depth = depth;
+    this.width = shape.width;
+    this.height = shape.height;
+    this.depth = shape.depth;
+    this.volume = this.width * this.height * this.depth;
 
     this.addContainer();
   }
@@ -32,39 +30,42 @@ export class CuboidContainer {
     const height = this.height * 1.25;
     const depth = this.depth;
     const thickness = 1;
+    const xShift = width / 2 + thickness / 2;
+    const yShift = height / 2;
+    const zShift = depth / 2 + thickness / 2;
 
     const wallsData = [
       {
         id: "x-",
-        position: new Vector3(-thickness / 2, height / 2, depth / 2),
+        position: new Vector3(-xShift, yShift, 0),
         dimX: thickness,
         dimY: height,
         dimZ: depth,
       },
       {
         id: "x+",
-        position: new Vector3(width + thickness / 2, height / 2, depth / 2),
+        position: new Vector3(xShift, yShift, 0),
         dimX: thickness,
         dimY: height,
         dimZ: depth,
       },
       {
         id: "y-",
-        position: new Vector3(width / 2, -thickness / 2, depth / 2),
+        position: new Vector3(0, -thickness / 2, 0),
         dimX: width,
         dimY: thickness,
         dimZ: depth,
       },
       {
         id: "z-",
-        position: new Vector3(width / 2, height / 2, -thickness / 2),
+        position: new Vector3(0, yShift, -zShift),
         dimX: width,
         dimY: height,
         dimZ: thickness,
       },
       {
         id: "z+",
-        position: new Vector3(width / 2, height / 2, depth + thickness / 2),
+        position: new Vector3(0, yShift, zShift),
         dimX: width,
         dimY: height,
         dimZ: thickness,

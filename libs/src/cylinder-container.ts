@@ -6,16 +6,20 @@ import {
   StandardMaterial,
   Vector3,
 } from "babylonjs";
+import { Cylinder } from "./cylinder";
 
 export class CylinderContainer {
-  private isNullEngine: boolean;
   readonly radius: number;
   readonly height: number;
+  readonly volume: number;
 
-  constructor(isNullEngine: boolean, radius: number, height: number) {
+  private isNullEngine: boolean;
+
+  constructor(isNullEngine: boolean, shape: Cylinder) {
     this.isNullEngine = isNullEngine;
-    this.radius = radius;
-    this.height = height;
+    this.radius = shape.radius;
+    this.height = shape.height;
+    this.volume = this.height * Math.PI * this.radius ** 2;
 
     this.addContainer();
   }
@@ -25,9 +29,8 @@ export class CylinderContainer {
     const diameter = 2 * this.radius;
     const height = this.height * 1.25;
     const thickness = 1;
-    const horizontalShift = thickness / 2 + radius;
     const verticalShift = height / 2;
-    const center = new Vector3(horizontalShift, verticalShift, horizontalShift);
+    const center = new Vector3(0, verticalShift, 0);
     const cuboidWidth = radius / 2;
     const circumference = 2 * Math.PI * radius;
     const numberOfCuboids = Math.ceil(circumference / cuboidWidth);
@@ -37,11 +40,6 @@ export class CylinderContainer {
       height: thickness,
       depth: diameter + thickness,
     });
-    groundMesh.position = new Vector3(
-      horizontalShift,
-      -thickness,
-      horizontalShift
-    );
     new PhysicsAggregate(groundMesh, PhysicsShapeType.BOX, {
       mass: 0,
     });
@@ -64,9 +62,9 @@ export class CylinderContainer {
       const wall = cuboidMesh.clone("cuboid");
       const angle = ((Math.PI * 2) / numberOfCuboids) * i;
 
-      wall.position.x = Math.cos(angle) * radius + horizontalShift;
+      wall.position.x = Math.cos(angle) * radius;
       wall.position.y = verticalShift;
-      wall.position.z = Math.sin(angle) * radius + horizontalShift;
+      wall.position.z = Math.sin(angle) * radius;
       wall.lookAt(center);
 
       new PhysicsAggregate(wall, PhysicsShapeType.BOX, {
