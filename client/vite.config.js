@@ -1,5 +1,5 @@
 export default {
-  base: "/babylon-js/",
+  base: "/mcm/",
   optimizeDeps: {
     exclude: ["@babylonjs/havok"],
   },
