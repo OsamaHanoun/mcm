@@ -1,5 +1,13 @@
 import HavokPhysics from "@babylonjs/havok";
-import { Engine, NullEngine, Scene, HavokPlugin, Vector3 } from "babylonjs";
+import {
+  Engine,
+  NullEngine,
+  Scene,
+  HavokPlugin,
+  Vector3,
+  Mesh,
+} from "babylonjs";
+import { STLExport } from "@babylonjs/serializers";
 import { CuboidContainer } from "./cuboid-container";
 import { Light } from "./light";
 import { AxisHelper } from "./axis-helper";
@@ -19,6 +27,7 @@ export class WorldManager {
   private scene?: Scene;
   private baseAggregateArray: BaseAggregate[];
   private shape: Cuboid | Cylinder;
+  private sample?: Sample;
 
   constructor(
     canvas: HTMLCanvasElement | undefined,
@@ -49,7 +58,7 @@ export class WorldManager {
 
     new Camera(container);
     // new Notch(this.isNullEngine, "z", 5, 10, container);
-    new Sample(
+    this.sample = new Sample(
       this.baseAggregateArray,
       this.scene,
       physicsEngine,
@@ -74,19 +83,41 @@ export class WorldManager {
     }
   }
 
-  pauseSimulation() {
+  logModel() {
     this.scene?.executeOnceBeforeRender(() => {
-      this.engine.stopRenderLoop();
-      if (this.scene) {
-        new Slicer(this.scene, this.shape).apply();
-      }
+      const exportMeshes: Mesh[] = [];
 
       this.scene?.meshes.forEach((mesh) => {
-        if (mesh.name !== "sliced") {
+        if (mesh.name === "sliced") {
+          exportMeshes.push(mesh as Mesh);
+        } else {
           mesh.physicsBody?.dispose();
           mesh.dispose();
         }
       });
+
+      const stlFile: DataView = STLExport.CreateSTL(
+        exportMeshes as any,
+        false,
+        "models",
+        false,
+        false,
+        true,
+        true,
+        true
+      );
+
+      console.log(stlFile);
+    });
+  }
+
+  pauseSimulation() {
+    this.scene?.executeOnceBeforeRender(() => {
+      if (this.scene) {
+        new Slicer(this.scene, this.shape).apply();
+      }
+
+      delete this.sample;
     });
   }
 

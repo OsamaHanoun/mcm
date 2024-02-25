@@ -58,13 +58,11 @@ document.getElementById("pauseSimulation")?.addEventListener("click", () => {
   });
 });
 
-document
-  .getElementById("stopAddingAggregates")
-  ?.addEventListener("click", () => {
-    worker.postMessage({
-      messageName: "stopAddingAggregates",
-    });
+document.getElementById("logModel")?.addEventListener("click", () => {
+  worker.postMessage({
+    messageName: "logModel",
   });
+});
 
 document
   .getElementById("presumeAddingAggregates")

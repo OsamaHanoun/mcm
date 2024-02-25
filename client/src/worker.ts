@@ -16,7 +16,7 @@ onmessage = async function (evt: MessageEvent<Message>) {
       const csvString = await csvResponse.text();
       const baseAggregateArray = await CSVAggregateReader.parse(csvString);
       const shape = new Cuboid(25, 25, 25);
-      // const shape = new Cylinder(15, 25);
+      // const shape = new Cylinder(15, 15);
 
       worldManager = new WorldManager(
         evt.data.canvas,
@@ -34,6 +34,10 @@ onmessage = async function (evt: MessageEvent<Message>) {
 
     case "pauseSimulation":
       worldManager.pauseSimulation();
+      break;
+
+    case "logModel":
+      worldManager.logModel();
       break;
 
     default:
