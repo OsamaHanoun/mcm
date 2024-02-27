@@ -6,6 +6,7 @@ import {
   HavokPlugin,
   Vector3,
   Mesh,
+  Color4,
 } from "babylonjs";
 import { STLExport } from "@babylonjs/serializers";
 import { CuboidContainer } from "./cuboid-container";
@@ -129,6 +130,7 @@ export class WorldManager {
   private createScene(physicsEngine: HavokPlugin) {
     const scene = new Scene(this.engine);
     scene.enablePhysics(new Vector3(0, -9.8, 0), physicsEngine);
+    scene.clearColor = new Color4(0, 0, 0, 0);
 
     return scene;
   }

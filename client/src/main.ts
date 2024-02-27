@@ -1,4 +1,4 @@
-import "./style.css";
+import { addChart } from "./sieve-curve";
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
 canvas.width = canvas.clientWidth;
@@ -8,6 +8,8 @@ const offscreen = canvas.transferControlToOffscreen();
 const worker = new Worker(new URL("./worker.ts", import.meta.url), {
   type: "module",
 });
+
+addChart();
 
 worker.postMessage(
   {

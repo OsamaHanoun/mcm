@@ -3,13 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./src/style.css" />
     <title>MCM</title>
   </head>
   <body>
-      <button id="pauseSimulation">pauseSimulation</button>
-      <button id="logModel">logModel</button>
+    <div id="upper-section">
+      <div id="btn-container">
+        <button id="pauseSimulation">Pause Simulation</button>
+        <button id="logModel">Log Model</button>
+      </div>
+      <div id="chart-container">
+        <canvas id="chart"></canvas>
+      </div>
     </div>
-    <canvas id="renderCanvas"></canvas>
+    <div id="canvas-container">
+      <canvas id="renderCanvas"></canvas>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
