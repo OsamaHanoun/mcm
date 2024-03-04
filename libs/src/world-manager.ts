@@ -20,7 +20,7 @@ import { Notch } from "./notch";
 import { Cuboid } from "./cuboid";
 import { Cylinder } from "./cylinder";
 import { Slicer } from "./slicer";
-
+import { NotchParams } from "./types";
 export class WorldManager {
   private canvas?: HTMLCanvasElement;
   private engine: Engine | NullEngine;
@@ -29,17 +29,20 @@ export class WorldManager {
   private baseAggregateArray: BaseAggregate[];
   private shape: Cuboid | Cylinder;
   private sample?: Sample;
+  private notchParams?: NotchParams;
 
   constructor(
     canvas: HTMLCanvasElement | undefined,
     isNullEngine: boolean,
     shape: Cuboid | Cylinder,
-    baseAggregateArray: BaseAggregate[]
+    baseAggregateArray: BaseAggregate[],
+    notchParams?: NotchParams
   ) {
     this.isNullEngine = isNullEngine;
     this.canvas = canvas;
     this.shape = shape;
     this.baseAggregateArray = baseAggregateArray;
+    this.notchParams = notchParams;
     this.engine =
       this.isNullEngine || !this.canvas
         ? new NullEngine()
@@ -56,9 +59,11 @@ export class WorldManager {
       this.shape instanceof Cuboid
         ? new CuboidContainer(this.isNullEngine, this.shape)
         : new CylinderContainer(this.isNullEngine, this.shape);
+    if (this.notchParams) {
+      new Notch(this.isNullEngine, this.notchParams, container);
+    }
 
     new Camera(container);
-    // new Notch(this.isNullEngine, "z", 5, 10, container);
     this.sample = new Sample(
       this.baseAggregateArray,
       this.scene,

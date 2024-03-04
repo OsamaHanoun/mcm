@@ -1,5 +1,6 @@
 import {
   Color3,
+  Mesh,
   MeshBuilder,
   PhysicsAggregate,
   PhysicsShapeType,
@@ -8,46 +9,44 @@ import {
 } from "babylonjs";
 import { CuboidContainer } from "./cuboid-container";
 import { CylinderContainer } from "./cylinder-container";
+import { NotchParams } from "./types";
 
 export class Notch {
-  private isNullEngine: boolean;
-  private readonly width: number;
-  private readonly height: number;
+  private readonly isNullEngine: boolean;
   private readonly container: CuboidContainer | CylinderContainer;
-  private readonly direction: "x" | "z";
+  private readonly notchParams: NotchParams;
 
   constructor(
     isNullEngine: boolean,
-    direction: "x" | "z",
-    width: number,
-    height: number,
+    notchParams: NotchParams,
     container: CuboidContainer | CylinderContainer
   ) {
     this.isNullEngine = isNullEngine;
-    this.direction = direction;
-    this.width = width;
-    this.height = height;
+    this.notchParams = notchParams;
     this.container = container;
     this.addNotch();
   }
 
-  private addNotch(): void {
+  private addNotch(): Mesh {
+    const { height, direction } = this.notchParams;
     let width = 0;
     let depth = 0;
     let positionX = 0;
     let positionZ = 0;
-    const positionY = this.height / 2;
+    const positionY = height / 2;
 
     if (this.container instanceof CuboidContainer) {
-      width = this.direction === "z" ? this.width : this.container.depth;
-      depth = this.direction === "x" ? this.width : this.container.width;
+      width = direction === "z" ? this.notchParams.width : this.container.depth;
+      depth = direction === "x" ? this.notchParams.width : this.container.width;
     } else if (this.container instanceof CylinderContainer) {
-      width = this.direction === "z" ? this.width : this.container.radius * 2;
-      depth = this.direction === "x" ? this.width : this.container.radius * 2;
+      width =
+        direction === "z" ? this.notchParams.width : this.container.radius * 2;
+      depth =
+        direction === "x" ? this.notchParams.width : this.container.radius * 2;
     }
 
     const mesh = MeshBuilder.CreateBox("notch", {
-      height: this.height,
+      height,
       width,
       depth,
     });
@@ -61,5 +60,7 @@ export class Notch {
 
     mesh.position = new Vector3(positionX, positionY, positionZ);
     new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0 });
+
+    return mesh;
   }
 }

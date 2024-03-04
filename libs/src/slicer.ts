@@ -5,10 +5,12 @@ import { Cylinder } from "./cylinder";
 export class Slicer {
   container: Cylinder | Cuboid;
   scene: Scene;
+  notch?: Mesh;
 
-  constructor(scene: Scene, container: Cuboid | Cylinder) {
+  constructor(scene: Scene, container: Cuboid | Cylinder, notch?: Mesh) {
     this.container = container;
     this.scene = scene;
+    this.notch = notch;
   }
 
   apply() {
@@ -29,14 +31,19 @@ export class Slicer {
       height: this.container.height,
       depth: depth,
     });
-    slicerMesh.position.y = this.container.height * 1.5;
+    slicerMesh.position.y = this.container.height * 0.5;
 
-    const slicerCSG = CSG.FromMesh(slicerMesh);
+    let slicerCSG = CSG.FromMesh(slicerMesh);
+
+    if (this.notch) {
+      const notchCSG = CSG.FromMesh(this.notch);
+      slicerCSG = slicerCSG.subtract(notchCSG);
+    }
 
     this.scene.meshes.forEach((mesh) => {
       if (mesh.name === "aggregate") {
         const meshCSG = CSG.FromMesh(mesh as Mesh);
-        meshCSG.subtract(slicerCSG).toMesh("sliced");
+        meshCSG.intersect(slicerCSG).toMesh("sliced");
         mesh.physicsBody?.dispose();
         mesh.dispose();
       }
