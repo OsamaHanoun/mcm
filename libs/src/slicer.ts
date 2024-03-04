@@ -14,23 +14,21 @@ export class Slicer {
   }
 
   apply() {
-    let width = 1;
-    let depth = 1;
+    let slicerMesh!: Mesh;
 
     if (this.container instanceof Cuboid) {
-      width = this.container.width;
-      depth = this.container.depth;
+      slicerMesh = MeshBuilder.CreateBox("slicer", {
+        width: this.container.width,
+        height: this.container.height,
+        depth: this.container.depth,
+      });
     } else if (this.container instanceof Cylinder) {
-      const diameter = this.container.radius * 2;
-      width = diameter;
-      depth = diameter;
+      slicerMesh = MeshBuilder.CreateCylinder("slicer", {
+        height: this.container.height,
+        diameter: this.container.radius * 2,
+      });
     }
 
-    const slicerMesh = MeshBuilder.CreateBox("slicer", {
-      width: width,
-      height: this.container.height,
-      depth: depth,
-    });
     slicerMesh.position.y = this.container.height * 0.5;
 
     let slicerCSG = CSG.FromMesh(slicerMesh);

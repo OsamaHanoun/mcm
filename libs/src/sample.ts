@@ -20,6 +20,7 @@ import { BaseAggregate } from "./base-aggregate";
 import { CuboidContainer } from "./cuboid-container";
 import { shuffle } from "lodash-es";
 import { CylinderContainer } from "./cylinder-container";
+import { NotchParams } from "./types";
 
 export class Sample {
   private baseAggregateArray: BaseAggregate[];
@@ -29,26 +30,29 @@ export class Sample {
   private totalCount = 0;
   private totalVolumeFraction = 0;
   private totalAggregatesVolume = 0;
-  private currentLocation = { x: 0, y: 0, z: 0 };
-  private startLocation = { x: 0, z: 0 };
+  private currentLocation = { x: 1, y: 1, z: 1 };
+  private startLocation = { x: 0, y: 0, z: 0 };
   private scene: Scene;
   private meshToPhysicsBodyMap = new Map<PhysicsBody, Mesh>();
   private aggregatesTracker: string[] = [];
   private isNullEngine: boolean;
   private physicsEngine: HavokPlugin;
+  private notchParams?: NotchParams;
 
   constructor(
     baseAggregateArray: BaseAggregate[],
     scene: Scene,
     physicsEngine: HavokPlugin,
     isNullEngine: boolean,
-    container: CuboidContainer | CylinderContainer
+    container: CuboidContainer | CylinderContainer,
+    notchParams?: NotchParams
   ) {
     this.baseAggregateArray = baseAggregateArray;
     this.container = container;
     this.scene = scene;
     this.physicsEngine = physicsEngine;
     this.isNullEngine = isNullEngine;
+    this.notchParams = notchParams;
 
     this.calculateMaxDimension();
     this.calculateGrid();
@@ -57,17 +61,21 @@ export class Sample {
     this.calculateTotalCount();
     this.addTrigger();
 
-    scene.registerBeforeRender(() => {
-      if (this.currentLocation.y !== this.grid.y) {
+    const cb = () => {
+      if (this.currentLocation.y < this.grid.y) {
         for (let index = 0; index < this.grid.x * this.grid.z; index++) {
           const mesh = this.addAggregate();
           mesh && this.addToVolumeFraction(mesh);
         }
+      } else {
+        scene.unregisterBeforeRender(cb);
       }
-    });
+    };
+
+    scene.registerBeforeRender(cb);
   }
 
-  addAggregate(): Mesh | undefined {
+  private addAggregate(): Mesh | undefined {
     const aggregate = this.getRandomAggregate();
 
     if (!aggregate) return;
@@ -89,7 +97,7 @@ export class Sample {
     return aggregateMesh;
   }
 
-  addToVolumeFraction(mesh: Mesh) {
+  private addToVolumeFraction(mesh: Mesh) {
     const containerVolume = this.container.volume;
     const volume = AggregateGenerator.calculateVolume(mesh);
     this.totalAggregatesVolume += volume ?? 0;
@@ -113,20 +121,21 @@ export class Sample {
   }
 
   private calculateGrid() {
+    const y = Math.ceil(this.container.height / this.maxDimension) + 2;
+
     if (this.container instanceof CuboidContainer) {
-      const { width, height, depth } = this.container;
+      const { width, depth } = this.container;
       this.grid = {
         x: Math.floor(width / this.maxDimension),
-        y: Math.ceil(height / this.maxDimension),
         z: Math.floor(depth / this.maxDimension),
+        y,
       };
     } else if (this.container instanceof CylinderContainer) {
-      const { height, radius } = this.container;
-      const edgeLength = 2 * radius;
+      const edgeLength = this.container.radius * 2 ** 0.5;
       this.grid = {
         x: Math.floor(edgeLength / this.maxDimension),
-        y: Math.ceil(height / this.maxDimension),
         z: Math.floor(edgeLength / this.maxDimension),
+        y,
       };
     }
   }
@@ -138,8 +147,12 @@ export class Sample {
       this.startLocation.z = -depth / 2;
     } else if (this.container instanceof CylinderContainer) {
       const { radius } = this.container;
-      this.startLocation.x = -radius;
-      this.startLocation.z = -radius;
+      this.startLocation.x = -radius * 2 ** 0.5 * 0.5;
+      this.startLocation.z = this.startLocation.x;
+    }
+
+    if (this.notchParams) {
+      this.startLocation.y = this.notchParams.height + this.maxDimension / 2;
     }
   }
 
@@ -171,33 +184,35 @@ export class Sample {
   }
 
   private getAggregatePosition(): Vector3 {
+    const x =
+      this.startLocation.x +
+      this.currentLocation.x * this.maxDimension -
+      0.5 * this.maxDimension;
+    const y =
+      this.startLocation.y +
+      this.currentLocation.y * this.maxDimension -
+      0.5 * this.maxDimension;
+    const z =
+      this.startLocation.z +
+      this.currentLocation.z * this.maxDimension -
+      0.5 * this.maxDimension;
+
     if (
-      this.currentLocation.x >= this.grid.x - 1 &&
-      this.currentLocation.z >= this.grid.z - 1
+      this.currentLocation.x === this.grid.x &&
+      this.currentLocation.z === this.grid.z
     ) {
-      this.currentLocation.x = 0;
-      this.currentLocation.z = 0;
+      this.currentLocation.x = 1;
+      this.currentLocation.z = 1;
       this.currentLocation.y =
         this.currentLocation.y !== this.grid.y
           ? this.currentLocation.y + 1
           : this.grid.y;
-    } else if (this.currentLocation.x >= this.grid.x - 1) {
-      this.currentLocation.x = 0;
+    } else if (this.currentLocation.x === this.grid.x) {
+      this.currentLocation.x = 1;
       this.currentLocation.z += 1;
     } else {
       this.currentLocation.x++;
     }
-
-    const x =
-      this.currentLocation.x * this.maxDimension +
-      0.5 * this.maxDimension +
-      this.startLocation.x;
-    const y =
-      this.currentLocation.y * this.maxDimension + 0.5 * this.maxDimension;
-    const z =
-      this.currentLocation.z * this.maxDimension +
-      0.5 * this.maxDimension +
-      this.startLocation.z;
 
     return new Vector3(x, y, z);
   }
@@ -224,7 +239,11 @@ export class Sample {
 
   private addTrigger() {
     const thickness = 1;
-    const position = new Vector3(0, this.container.height + thickness / 2, 0);
+    const position = new Vector3(
+      0,
+      this.grid.y * this.maxDimension + thickness,
+      0
+    );
     const dimensions = new Vector3(1, thickness, 1);
 
     if (this.container instanceof CuboidContainer) {
@@ -266,11 +285,11 @@ export class Sample {
       this.scene
     );
     triggerBody.shape = triggerShape;
-    const totalPerLayer = this.grid.x * this.grid.z;
 
+    const totalPerLayer = this.grid.x * this.grid.z;
     let countTriggerExited = 0;
     this.physicsEngine?.onTriggerCollisionObservable.add((event) => {
-      if (event.type === PhysicsEventType.TRIGGER_EXITED) {
+      if (event.type === PhysicsEventType.TRIGGER_ENTERED) {
         countTriggerExited++;
         const mesh = this.meshToPhysicsBodyMap.get(event.collider);
         mesh && this.addToVolumeFraction(mesh);
@@ -285,26 +304,4 @@ export class Sample {
       }
     });
   }
-
-  // private getRandomAggregate() {
-  // private aggregatesTracker: { id: string; count: number }[] = [];
-  //   if (!this.aggregatesTracker.length) {
-  //     this.aggregatesTracker = this.aggregatesParams.map(
-  //       ({ id, count = 0 }) => {
-  //         return { id, count };
-  //       }
-  //     );
-  //   }
-
-  //   const randomIndex = Math.floor(
-  //     Math.random() * this.aggregatesTracker.length
-  //   );
-  //   const { id } = this.aggregatesTracker[randomIndex];
-
-  //   if (--this.aggregatesTracker[randomIndex].count <= 0) {
-  //     this.aggregatesTracker.splice(randomIndex, 1);
-  //   }
-
-  //   return this.aggregatesParams.find((params) => params.id === id);
-  // }
 }

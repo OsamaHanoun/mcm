@@ -59,6 +59,7 @@ export class WorldManager {
       this.shape instanceof Cuboid
         ? new CuboidContainer(this.isNullEngine, this.shape)
         : new CylinderContainer(this.isNullEngine, this.shape);
+
     if (this.notchParams) {
       new Notch(this.isNullEngine, this.notchParams, container);
     }
@@ -69,7 +70,8 @@ export class WorldManager {
       this.scene,
       physicsEngine,
       this.isNullEngine,
-      container
+      container,
+      this.notchParams
     );
 
     if (!this.isNullEngine && this.canvas) {

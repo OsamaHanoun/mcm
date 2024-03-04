@@ -27,9 +27,9 @@ export class CuboidContainer {
 
   private addContainer() {
     const width = this.width;
-    const height = this.height * 1.25;
+    const height = this.height * 2;
     const depth = this.depth;
-    const thickness = 1;
+    const thickness = 20;
     const xShift = width / 2 + thickness / 2;
     const yShift = height / 2;
     const zShift = depth / 2 + thickness / 2;

@@ -18,10 +18,10 @@ onmessage = async function (evt: MessageEvent<Message>) {
       const baseAggregateArray = await CSVAggregateReader.parse(csvString);
       const notchParams: NotchParams = {
         direction: "z",
-        width: 5,
-        height: 10,
+        width: 20,
+        height: 15,
       };
-      const shape = new Cuboid(25, 25, 25);
+      const shape = new Cuboid(100, 100, 100);
       // const shape = new Cylinder(15, 15);
 
       worldManager = new WorldManager(

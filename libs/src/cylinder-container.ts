@@ -27,7 +27,7 @@ export class CylinderContainer {
   private addContainer() {
     const radius = this.radius;
     const diameter = 2 * this.radius;
-    const height = this.height * 1.25;
+    const height = this.height * 2;
     const thickness = 1;
     const verticalShift = height / 2;
     const center = new Vector3(0, verticalShift, 0);
