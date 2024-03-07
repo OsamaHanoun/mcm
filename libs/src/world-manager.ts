@@ -30,18 +30,21 @@ export class WorldManager {
   private shape: Cuboid | Cylinder;
   private sample?: Sample;
   private notchParams?: NotchParams;
+  private bodyToMeshScale: number;
 
   constructor(
     canvas: HTMLCanvasElement | undefined,
     isNullEngine: boolean,
     shape: Cuboid | Cylinder,
     baseAggregateArray: BaseAggregate[],
+    bodyToMeshScale: number = 1,
     notchParams?: NotchParams
   ) {
     this.isNullEngine = isNullEngine;
     this.canvas = canvas;
     this.shape = shape;
     this.baseAggregateArray = baseAggregateArray;
+    this.bodyToMeshScale = bodyToMeshScale;
     this.notchParams = notchParams;
     this.engine =
       this.isNullEngine || !this.canvas
@@ -71,6 +74,7 @@ export class WorldManager {
       physicsEngine,
       this.isNullEngine,
       container,
+      this.bodyToMeshScale,
       this.notchParams
     );
 

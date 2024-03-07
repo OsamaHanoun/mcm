@@ -1,17 +1,18 @@
 import {
   Color3,
+  Debug,
   HavokPlugin,
   Mesh,
   MeshBuilder,
+  PhysicsAggregate,
   PhysicsBody,
   PhysicsEventType,
   PhysicsMotionType,
-  PhysicsShapeBox,
   PhysicsShapeConvexHull,
-  Quaternion,
+  PhysicsShapeType,
+  PhysicsViewer,
   Scene,
   StandardMaterial,
-  TransformNode,
   Vector3,
 } from "babylonjs";
 
@@ -38,6 +39,7 @@ export class Sample {
   private isNullEngine: boolean;
   private physicsEngine: HavokPlugin;
   private notchParams?: NotchParams;
+  private bodyToMeshScale: number;
 
   constructor(
     baseAggregateArray: BaseAggregate[],
@@ -45,6 +47,7 @@ export class Sample {
     physicsEngine: HavokPlugin,
     isNullEngine: boolean,
     container: CuboidContainer | CylinderContainer,
+    bodyToMeshScale: number = 1,
     notchParams?: NotchParams
   ) {
     this.baseAggregateArray = baseAggregateArray;
@@ -53,6 +56,7 @@ export class Sample {
     this.physicsEngine = physicsEngine;
     this.isNullEngine = isNullEngine;
     this.notchParams = notchParams;
+    this.bodyToMeshScale = bodyToMeshScale;
 
     this.calculateMaxDimension();
     this.calculateGrid();
@@ -76,25 +80,27 @@ export class Sample {
   }
 
   private addAggregate(): Mesh | undefined {
-    const aggregate = this.getRandomAggregate();
+    const baseAggregate = this.getRandomAggregate();
 
-    if (!aggregate) return;
+    if (!baseAggregate) return;
 
-    const aggregateMesh = AggregateGenerator.generate(aggregate);
-    aggregateMesh.position = this.getAggregatePosition();
+    const mesh = AggregateGenerator.generate(baseAggregate);
+    mesh.position = this.getAggregatePosition();
+    mesh.scaling.scaleInPlace(this.bodyToMeshScale);
 
-    const aggregateBody = new PhysicsBody(
-      aggregateMesh,
+    const body = new PhysicsBody(
+      mesh,
       PhysicsMotionType.DYNAMIC,
       false,
       this.scene
     );
-    aggregateBody.shape = new PhysicsShapeConvexHull(aggregateMesh, this.scene);
-    aggregateBody.shape.material = { friction: 0.3, restitution: 0 };
+    body.shape = new PhysicsShapeConvexHull(mesh, this.scene);
+    body.shape.material = { friction: 0.5, restitution: 0 };
 
-    this.meshToPhysicsBodyMap.set(aggregateBody, aggregateMesh);
+    mesh.scaling.scaleInPlace(1 / this.bodyToMeshScale);
+    this.meshToPhysicsBodyMap.set(body, mesh);
 
-    return aggregateMesh;
+    return mesh;
   }
 
   private addToVolumeFraction(mesh: Mesh) {
@@ -121,7 +127,7 @@ export class Sample {
   }
 
   private calculateGrid() {
-    const y = Math.ceil(this.container.height / this.maxDimension) + 2;
+    const y = Math.floor(this.container.height / this.maxDimension) + 5;
 
     if (this.container instanceof CuboidContainer) {
       const { width, depth } = this.container;
@@ -188,10 +194,7 @@ export class Sample {
       this.startLocation.x +
       this.currentLocation.x * this.maxDimension -
       0.5 * this.maxDimension;
-    const y =
-      this.startLocation.y +
-      this.currentLocation.y * this.maxDimension -
-      0.5 * this.maxDimension;
+    const y = this.startLocation.y + this.currentLocation.y * this.maxDimension;
     const z =
       this.startLocation.z +
       this.currentLocation.z * this.maxDimension -
@@ -238,61 +241,46 @@ export class Sample {
   }
 
   private addTrigger() {
-    const thickness = 1;
-    const position = new Vector3(
-      0,
-      this.grid.y * this.maxDimension + thickness,
-      0
-    );
-    const dimensions = new Vector3(1, thickness, 1);
+    let width = 1;
+    let depth = 1;
 
     if (this.container instanceof CuboidContainer) {
-      const { width, depth } = this.container;
-      dimensions.x = width;
-      dimensions.z = depth;
+      width = this.container.width;
+      depth = this.container.depth;
     } else if (this.container instanceof CylinderContainer) {
-      const { radius } = this.container;
-      dimensions.x = radius * 2;
-      dimensions.z = radius * 2;
+      width = this.container.radius * 2;
+      depth = width;
     }
+
+    const mesh = MeshBuilder.CreatePlane("trigger-plane", {
+      height: depth,
+      width,
+      sideOrientation: Mesh.DOUBLESIDE,
+    });
+    mesh.position.y = Math.floor((this.grid.y - 3) * this.maxDimension);
+    mesh.rotation.x = Math.PI / 2;
+    new PhysicsAggregate(mesh, PhysicsShapeType.BOX, {
+      mass: 0,
+      isTriggerShape: true,
+    });
 
     if (!this.isNullEngine) {
-      const triggerRepresentation = MeshBuilder.CreateBox("triggerMesh", {
-        width: dimensions.x,
-        height: dimensions.y,
-        depth: dimensions.z,
-      });
-      triggerRepresentation.position = position;
-      triggerRepresentation.material = new StandardMaterial("mat");
-      triggerRepresentation.material.alpha = 0.7;
-      (triggerRepresentation.material as StandardMaterial).diffuseColor =
-        Color3.Red();
+      mesh.material = new StandardMaterial("red");
+      mesh.material.alpha = 0.7;
+      (mesh.material as StandardMaterial).diffuseColor = Color3.Red();
     }
 
-    const triggerShape = new PhysicsShapeBox(
-      position,
-      new Quaternion(0, 0, 0, 1),
-      dimensions,
-      this.scene
-    );
-    triggerShape.isTrigger = true;
-
-    const triggerTransform = new TransformNode("triggerTransform");
-    const triggerBody = new PhysicsBody(
-      triggerTransform,
-      PhysicsMotionType.STATIC,
-      false,
-      this.scene
-    );
-    triggerBody.shape = triggerShape;
-
+    const observable = this.physicsEngine.onTriggerCollisionObservable;
     const totalPerLayer = this.grid.x * this.grid.z;
     let countTriggerExited = 0;
-    this.physicsEngine?.onTriggerCollisionObservable.add((event) => {
-      if (event.type === PhysicsEventType.TRIGGER_ENTERED) {
+
+    observable.add((collisionEvent) => {
+      const { collider } = collisionEvent;
+      const mesh = this.meshToPhysicsBodyMap.get(collider);
+
+      if (collisionEvent.type === PhysicsEventType.TRIGGER_ENTERED && mesh) {
         countTriggerExited++;
-        const mesh = this.meshToPhysicsBodyMap.get(event.collider);
-        mesh && this.addToVolumeFraction(mesh);
+        this.addToVolumeFraction(mesh);
       }
 
       if (totalPerLayer === countTriggerExited) {
@@ -304,4 +292,6 @@ export class Sample {
       }
     });
   }
+
+  private addDecelerationLayers() {}
 }
