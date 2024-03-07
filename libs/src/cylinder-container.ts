@@ -12,6 +12,7 @@ export class CylinderContainer {
   readonly radius: number;
   readonly height: number;
   readonly volume: number;
+  readonly segments: number;
 
   private isNullEngine: boolean;
 
@@ -19,6 +20,7 @@ export class CylinderContainer {
     this.isNullEngine = isNullEngine;
     this.radius = shape.radius;
     this.height = shape.height;
+    this.segments = shape.segments;
     this.volume = this.height * Math.PI * this.radius ** 2;
 
     this.addContainer();
@@ -33,7 +35,9 @@ export class CylinderContainer {
     const center = new Vector3(0, verticalShift, 0);
     const cuboidWidth = radius / 2;
     const circumference = 2 * Math.PI * radius;
-    const numberOfCuboids = Math.ceil(circumference / cuboidWidth);
+    const minNumberOfSegments = Math.ceil(circumference / cuboidWidth);
+    const numberOfCuboids =
+      this.segments > minNumberOfSegments ? this.segments : minNumberOfSegments;
 
     const groundMesh = MeshBuilder.CreateBox("ground", {
       width: diameter + thickness,
