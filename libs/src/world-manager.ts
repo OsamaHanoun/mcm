@@ -31,6 +31,10 @@ export class WorldManager {
   private sample?: Sample;
   private notchParams?: NotchParams;
   private bodyToMeshScale: number;
+  private friction: number;
+  private restitution: number;
+  private gravity: number;
+  private subTimeStep: number;
 
   constructor(
     canvas: HTMLCanvasElement | undefined,
@@ -38,6 +42,10 @@ export class WorldManager {
     shape: Cuboid | Cylinder,
     baseAggregateArray: BaseAggregate[],
     bodyToMeshScale: number = 1,
+    gravity = -9.8,
+    friction = 0.5,
+    restitution = 0,
+    subTimeStep = 0,
     notchParams?: NotchParams
   ) {
     this.isNullEngine = isNullEngine;
@@ -45,6 +53,10 @@ export class WorldManager {
     this.shape = shape;
     this.baseAggregateArray = baseAggregateArray;
     this.bodyToMeshScale = bodyToMeshScale;
+    this.friction = friction;
+    this.restitution = restitution;
+    this.gravity = gravity;
+    this.subTimeStep = subTimeStep;
     this.notchParams = notchParams;
     this.engine =
       this.isNullEngine || !this.canvas
@@ -75,6 +87,8 @@ export class WorldManager {
       this.isNullEngine,
       container,
       this.bodyToMeshScale,
+      this.restitution,
+      this.friction,
       this.notchParams
     );
 
@@ -140,7 +154,8 @@ export class WorldManager {
 
   private createScene(physicsEngine: HavokPlugin) {
     const scene = new Scene(this.engine);
-    scene.enablePhysics(new Vector3(0, -9.8, 0), physicsEngine);
+    scene.enablePhysics(new Vector3(0, this.gravity, 0), physicsEngine);
+    scene.getPhysicsEngine()?.setSubTimeStep(this.subTimeStep);
     scene.clearColor = new Color4(0, 0, 0, 0);
 
     return scene;

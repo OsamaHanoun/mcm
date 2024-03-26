@@ -40,6 +40,8 @@ export class Sample {
   private physicsEngine: HavokPlugin;
   private notchParams?: NotchParams;
   private bodyToMeshScale: number;
+  private friction: number;
+  private restitution: number;
 
   constructor(
     baseAggregateArray: BaseAggregate[],
@@ -47,7 +49,9 @@ export class Sample {
     physicsEngine: HavokPlugin,
     isNullEngine: boolean,
     container: CuboidContainer | CylinderContainer,
-    bodyToMeshScale: number = 1,
+    bodyToMeshScale: number = 2,
+    friction: number,
+    restitution: number,
     notchParams?: NotchParams
   ) {
     this.baseAggregateArray = baseAggregateArray;
@@ -57,6 +61,8 @@ export class Sample {
     this.isNullEngine = isNullEngine;
     this.notchParams = notchParams;
     this.bodyToMeshScale = bodyToMeshScale;
+    this.friction = friction;
+    this.restitution = restitution;
 
     this.calculateMaxDimension();
     this.calculateGrid();
@@ -95,7 +101,10 @@ export class Sample {
       this.scene
     );
     body.shape = new PhysicsShapeConvexHull(mesh, this.scene);
-    body.shape.material = { friction: 0.5, restitution: 0 };
+    body.shape.material = {
+      friction: this.friction,
+      restitution: this.restitution,
+    };
 
     mesh.scaling.scaleInPlace(1 / this.bodyToMeshScale);
     this.meshToPhysicsBodyMap.set(body, mesh);

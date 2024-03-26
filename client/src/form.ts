@@ -5,45 +5,31 @@ const html = (innerHTML: TemplateStringsArray) => {
 };
 
 export class Form {
-  form: HTMLFormElement;
+  formElement: HTMLFormElement;
 
   constructor() {
-    this.form = this.createForm();
+    this.formElement = this.createForm();
     this.addUploadFileField();
     this.addContainerFields();
     this.addNotchFields();
     this.addPhysicsEngineFields();
     this.addSubmitButton();
 
-    document.body.append(this.form);
+    document.body.prepend(this.formElement);
+  }
+
+  public destroy() {
+    this.formElement.remove();
   }
 
   private createForm(): HTMLFormElement {
     const formElement = document.createElement("form");
-
-    formElement.addEventListener("submit", (event) => {
-      // Prevent the default form submission behavior
-
-      const target = event.target as HTMLFormElement;
-
-      // Create a FormData object, passing in the form
-      const formData = new FormData(target);
-
-      // Optionally, convert FormData to a simple object
-      const formDataObj = Object.fromEntries(formData.entries());
-
-      console.log(formDataObj);
-
-      event.preventDefault();
-      event.stopPropagation();
-    });
-
     return formElement;
   }
 
   private addSubmitButton() {
     const submitButton = html`<button type="submit">Start</button>`;
-    this.form?.appendChild(submitButton);
+    this.formElement?.appendChild(submitButton);
   }
 
   private addUploadFileField() {
@@ -58,7 +44,7 @@ export class Form {
     `;
 
     fieldset.append(legend, inputElement);
-    this.form?.appendChild(fieldset);
+    this.formElement?.appendChild(fieldset);
   }
 
   private addContainerFields() {
@@ -104,7 +90,7 @@ export class Form {
           Number of Segments
           <input
             type="number"
-            name="container-radius"
+            name="container-segments"
             min="1"
             step="1"
             required
@@ -137,7 +123,7 @@ export class Form {
     });
 
     fieldset.append(legend, radioButtons, cuboidFields.cloneNode(true));
-    this.form?.appendChild(fieldset);
+    this.formElement?.appendChild(fieldset);
   }
 
   private addNotchFields() {
@@ -203,7 +189,7 @@ export class Form {
     });
 
     fieldset.append(legend, checkBox);
-    this.form?.appendChild(fieldset);
+    this.formElement?.appendChild(fieldset);
   }
 
   private addPhysicsEngineFields() {
@@ -217,7 +203,25 @@ export class Form {
       <div id="engine-fields">
         <label>
           Gravity
-          <input type="number" name="engine-gravity" value="-9.8" required />
+          <input
+            type="number"
+            name="engine-gravity"
+            value="-9.8"
+            step="0.001"
+            required
+          />
+        </label>
+
+        <label>
+          Sub Time Step
+          <input
+            type="number"
+            name="engine-sub-time-step"
+            value="0"
+            step="1"
+            min="0"
+            required
+          />
         </label>
 
         <label>
@@ -225,8 +229,10 @@ export class Form {
           <input
             type="number"
             name="engine-friction"
-            value="0"
+            value="0.5"
             min="0"
+            step="0.0001"
+            max="1000000"
             required
           />
         </label>
@@ -237,6 +243,7 @@ export class Form {
             type="number"
             name="engine-restitution"
             value="0"
+            step="0.0001"
             min="0"
             max="1"
             required
@@ -245,12 +252,12 @@ export class Form {
 
         <label>
           Mesh-Body Scale
-          <input type="number" name="engine-Scale" value="1" min="1" required />
+          <input type="number" name="engine-scale" value="1" min="1" required />
         </label>
       </div>
     `;
 
     fieldset.append(legend, paramsFields);
-    this.form?.appendChild(fieldset);
+    this.formElement?.appendChild(fieldset);
   }
 }

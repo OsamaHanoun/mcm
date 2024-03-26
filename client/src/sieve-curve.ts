@@ -2,11 +2,8 @@ import { Chart } from "chart.js/auto";
 import { CSVAggregateReader } from "./csv-aggregate-reader";
 import { SieveAnalysis } from "@mcm/libs/src/sieve-analysis";
 
-const addChart = async () => {
-  const csvUrl = new URL("/AB8_CMG_full.csv", import.meta.url).href;
-  const csvResponse = await fetch(csvUrl);
-  const csvString = await csvResponse.text();
-  const baseAggregateArray = await CSVAggregateReader.parse(csvString);
+const addChart = async (csv: string) => {
+  const baseAggregateArray = await CSVAggregateReader.parse(csv);
   const data = SieveAnalysis.calculateCurve(baseAggregateArray);
   const canvasElement = document.getElementById("chart") as HTMLCanvasElement;
 
