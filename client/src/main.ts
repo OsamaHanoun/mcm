@@ -1,3 +1,9 @@
+import {
+  createGeometry,
+  exportToSTL,
+  rebuildWithConvexHull,
+  removeGeometriesOutsideCuboid,
+} from "@mcm/libs/src/jscad";
 import { Form } from "./form";
 import { addChart } from "./sieve-curve";
 
@@ -53,18 +59,38 @@ form.formElement.addEventListener("submit", (event) => {
   form.destroy();
 });
 
-// worker.onmessage = (e: MessageEvent<Message>) => {
-//   const { messageName } = e.data;
+worker.onmessage = (e: any) => {
+  console.log(e.data);
+  worker.terminate();
+  const geometries: any[] = [];
 
-//   switch (messageName) {
-//     case "stlFile":
-//       downloadSTL(e.data.stlFile);
-//       break;
+  e.data.forEach((aggregate: any) => {
+    geometries.push(createGeometry(aggregate.vertices, aggregate.indices));
+  });
 
-//     default:
-//       break;
-//   }
-// };
+  const cover = 0.01;
+  const croppedGeometries = removeGeometriesOutsideCuboid(
+    geometries,
+    [25 - cover, 25 - cover, 25 - cover],
+    [0, (25 - cover) / 2, 0]
+  );
+
+  const repairedGeometries = croppedGeometries
+    .map((geom) => rebuildWithConvexHull(geom))
+    .filter((geom) => geom) as any[];
+
+  exportToSTL(repairedGeometries, [25, 25, 25], [0, 12.5, 0]);
+  //   const { messageName } = e.data;
+
+  //   switch (messageName) {
+  //     case "stlFile":
+  //       downloadSTL(e.data.stlFile);
+  //       break;
+
+  //     default:
+  //       break;
+  //   }
+};
 
 document
   .getElementById("pauseSimulation")

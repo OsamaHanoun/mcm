@@ -9,7 +9,7 @@ import {
 } from "babylonjs";
 import { CuboidContainer } from "./cuboid-container";
 import { CylinderContainer } from "./cylinder-container";
-import { NotchParams } from "./types";
+import { NotchParams } from "../types";
 
 export class Notch {
   private readonly isNullEngine: boolean;

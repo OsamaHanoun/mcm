@@ -19,5 +19,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["client/src", "libs/src"]
+  "include": ["node_modules", "client/src", "libs/src"]
 }

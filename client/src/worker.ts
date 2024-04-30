@@ -2,7 +2,7 @@ import { Cuboid } from "@mcm/libs/src/cuboid";
 import { CSVAggregateReader } from "./csv-aggregate-reader";
 import { WorldManager } from "@mcm/libs";
 import { Cylinder } from "@mcm/libs/src/cylinder";
-import { NotchParams } from "@mcm/libs/src/types";
+import { NotchParams } from "@mcm/libs/types";
 
 let worldManager: WorldManager;
 
