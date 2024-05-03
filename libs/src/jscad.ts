@@ -3,29 +3,51 @@ import {
   geometries,
   primitives,
   maths,
+  modifiers,
+  transforms,
   measurements,
-  hulls,
 } from "@jscad/modeling";
 import { stlSerializer } from "@jscad/io";
-import { Geom3, Poly3 } from "@jscad/modeling/src/geometries/types";
+import type { Geom3 } from "@jscad/modeling/src/geometries/types";
 import { Vec3 } from "@jscad/modeling/src/maths/vec3";
 
-import QuickHull from "quickhull3d/dist/QuickHull";
+import QuickHull, { isPointInsideHull } from "quickhull3d/dist/QuickHull";
 
-export const exportToSTL = (geometries: Geom3[], size: Vec3, center: Vec3) => {
+export const exportToSTL = (
+  geomArray: Geom3[],
+  size: Vec3,
+  center: Vec3,
+  group = false
+) => {
   const cuboid = primitives.cuboid({
     center,
     size,
   });
 
-  const stlData1 = stlSerializer.serialize({ binary: false }, [
-    booleans.scission(geometries),
-    cuboid,
-  ]);
+  let totalVolume = 0;
+  const filterGeom = geomArray.filter((geom) => {
+    const volume = measurements.measureVolume(geom);
+    totalVolume += volume;
+    return volume > 1;
+  });
 
-  // const stlData2 = stlSerializer.serialize({ binary: false }, cuboid)[0];
+  console.log("volume fraction = " + totalVolume / 40 ** 3);
+  const stlData = group;
+  stlSerializer.serialize({ binary: true }, [filterGeom, cuboid]);
 
-  console.log(stlData1[0]);
+  download(stlData);
+};
+
+const download = (content: any) => {
+  const blob = new Blob(content, { type: "application/stl" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.style.display = "none";
+  link.href = url;
+  link.download = "sample.stl";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 export const removeGeometriesOutsideCuboid = (
@@ -39,7 +61,11 @@ export const removeGeometriesOutsideCuboid = (
     return intersectionGeom;
   });
 
-  return newGeometries;
+  //@ts-ignore
+  return modifiers.generalize(
+    { simplify: true, snap: true, triangulate: true },
+    ...newGeometries
+  ) as Geom3[];
 };
 
 export const createGeometry = (
@@ -84,7 +110,10 @@ const hashVertex = (vertex: Vec3, tolerance: number) => {
   )}`;
 };
 
-export const mergeVertices = (geometry: Geom3, tolerance: number): Vec3[] => {
+export const mergeCloseVertices = (
+  geometry: Geom3,
+  tolerance: number
+): Geom3 | undefined => {
   const vertices: Vec3[] = [];
   const hashTable: Map<string, number[]> = new Map<string, number[]>();
 
@@ -115,13 +144,36 @@ export const mergeVertices = (geometry: Geom3, tolerance: number): Vec3[] => {
     });
   });
 
-  return vertices;
+  return rebuildWithConvexHull(vertices);
 };
 
-export const rebuildWithConvexHull = (geom: Geom3) => {
-  const vertices: Vec3[] = geom.polygons
-    .map((polygon) => polygon.vertices)
-    .flat();
+export const removeIntersectionBetweenGeometries = (
+  geom: Geom3,
+  geomArray: Geom3[]
+) => {
+  return booleans.subtract(geom, ...geomArray);
+};
+export const createBoundingBoxCuboid = (geom: Geom3) => {
+  const tolerance = 0.001;
+  const [min, max] = measurements.measureBoundingBox(geom);
+  const size: Vec3 = [
+    Math.abs(max[0] - min[0]) + tolerance,
+    Math.abs(max[1] - min[1]) + tolerance,
+    Math.abs(max[2] - min[2]) + tolerance,
+  ];
+  const center: Vec3 = [
+    min[0] + (size[0] - tolerance) / 2,
+    min[1] + (size[1] - tolerance) / 2,
+    min[2] + (size[2] - tolerance) / 2,
+  ];
+  return transforms.translate(center, primitives.cuboid({ size: size }));
+};
+
+export const rebuildWithConvexHull = (input: Geom3 | Vec3[]) => {
+  const vertices: Vec3[] =
+    "polygons" in input
+      ? input.polygons.map((polygon) => polygon.vertices).flat()
+      : input;
 
   if (vertices.length > 3) {
     const quickHull = new QuickHull(vertices);

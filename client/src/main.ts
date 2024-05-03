@@ -1,11 +1,15 @@
 import {
+  createBoundingBoxCuboid,
   createGeometry,
   exportToSTL,
+  mergeCloseVertices,
   rebuildWithConvexHull,
   removeGeometriesOutsideCuboid,
+  removeIntersectionBetweenGeometries,
 } from "@mcm/libs/src/jscad";
 import { Form } from "./form";
 import { addChart } from "./sieve-curve";
+import { transforms } from "@jscad/modeling";
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url), {
   type: "module",
@@ -60,7 +64,6 @@ form.formElement.addEventListener("submit", (event) => {
 });
 
 worker.onmessage = (e: any) => {
-  console.log(e.data);
   worker.terminate();
   const geometries: any[] = [];
 
@@ -68,7 +71,7 @@ worker.onmessage = (e: any) => {
     geometries.push(createGeometry(aggregate.vertices, aggregate.indices));
   });
 
-  const cover = 0.01;
+  const cover = 2;
   const croppedGeometries = removeGeometriesOutsideCuboid(
     geometries,
     [25 - cover, 25 - cover, 25 - cover],
@@ -79,17 +82,33 @@ worker.onmessage = (e: any) => {
     .map((geom) => rebuildWithConvexHull(geom))
     .filter((geom) => geom) as any[];
 
-  exportToSTL(repairedGeometries, [25, 25, 25], [0, 12.5, 0]);
-  //   const { messageName } = e.data;
+  const boundingBoxGeomMap: Map<any, any> = new Map<any, any>();
 
-  //   switch (messageName) {
-  //     case "stlFile":
-  //       downloadSTL(e.data.stlFile);
-  //       break;
+  repairedGeometries.forEach((geom) =>
+    boundingBoxGeomMap.set(geom, createBoundingBoxCuboid(geom))
+  );
 
-  //     default:
-  //       break;
-  //   }
+  const removedIntersectionGeometries = repairedGeometries.map((geom) => {
+    const boundingBoxGeom = boundingBoxGeomMap.get(geom);
+    boundingBoxGeomMap.delete(geom);
+
+    const x = removeIntersectionBetweenGeometries(
+      geom,
+      Array.from(boundingBoxGeomMap.values())
+    );
+
+    boundingBoxGeomMap.set(geom, boundingBoxGeom);
+
+    return x;
+  });
+
+  exportToSTL(
+    removedIntersectionGeometries
+      .map((geom) => mergeCloseVertices(geom, 1))
+      .filter((geom) => geom) as any[],
+    [25, 25, 25],
+    [0, 25 / 2, 0]
+  );
 };
 
 document

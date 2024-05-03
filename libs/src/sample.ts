@@ -78,7 +78,7 @@ export class Sample {
       if (this.currentLocation.y < this.grid.y) {
         for (let index = 0; index < this.grid.x * this.grid.z; index++) {
           const mesh = this.addAggregate();
-          mesh && this.addToVolumeFraction(mesh);
+          // mesh && this.addToVolumeFraction(mesh);
         }
       } else {
         scene.unregisterBeforeRender(cb);
@@ -121,7 +121,7 @@ export class Sample {
     this.totalAggregatesVolume += volume ?? 0;
     this.totalVolumeFraction =
       (this.totalAggregatesVolume / containerVolume) * 100;
-    console.log(this.totalVolumeFraction);
+    // console.log(this.totalVolumeFraction);
   }
 
   private calculateMaxDimension() {
@@ -357,7 +357,7 @@ export class Sample {
         !this.bodiesInContainerSet.has(collider)
       ) {
         this.bodiesInContainerSet.add(collider);
-        this.addToVolumeFraction(mesh);
+        // this.addToVolumeFraction(mesh);
       } else if (
         type === PhysicsEventType.COLLISION_STARTED &&
         collidedAgainst === removeAggregateBody
