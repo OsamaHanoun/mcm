@@ -13,27 +13,28 @@ import { Vec3 } from "@jscad/modeling/src/maths/vec3";
 
 import QuickHull, { isPointInsideHull } from "quickhull3d/dist/QuickHull";
 
-export const exportToSTL = (
-  geomArray: Geom3[],
-  size: Vec3,
-  center: Vec3,
-  group = false
-) => {
+export const exportToSTL = (geomArray: Geom3[], size: Vec3, center: Vec3) => {
   const cuboid = primitives.cuboid({
     center,
     size,
   });
 
   let totalVolume = 0;
+
   const filterGeom = geomArray.filter((geom) => {
     const volume = measurements.measureVolume(geom);
     totalVolume += volume;
     return volume > 1;
   });
 
-  console.log("volume fraction = " + totalVolume / 40 ** 3);
-  const stlData = group;
-  stlSerializer.serialize({ binary: true }, [filterGeom, cuboid]);
+  console.log("volume fraction = " + (totalVolume / 25 ** 3) * 100);
+
+  const stlData: any[] = [];
+  [...filterGeom, cuboid].forEach((geom) => {
+    const x = stlSerializer.serialize({ binary: true }, [geom]);
+
+    stlData.push(x);
+  });
 
   download(stlData);
 };
