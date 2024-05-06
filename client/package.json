@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mcm/libs": "0.0.1",
+    "@mcm/libs": "^0.0.1",
     "chart.js": "^4.4.1",
     "papaparse": "^5.4.1"
   },

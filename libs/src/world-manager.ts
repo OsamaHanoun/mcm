@@ -7,7 +7,13 @@ import {
   Vector3,
   Mesh,
   Color4,
+  IndicesArray,
+  FloatArray,
+  InstancedMesh,
+  AbstractMesh,
+  VertexBuffer,
 } from "babylonjs";
+
 import { STLExport } from "@babylonjs/serializers";
 import { CuboidContainer } from "./cuboid-container";
 import { Light } from "./light";
@@ -20,7 +26,8 @@ import { Notch } from "./notch";
 import { Cuboid } from "./cuboid";
 import { Cylinder } from "./cylinder";
 import { Slicer } from "./slicer";
-import { NotchParams } from "./types";
+import { NotchParams } from "../types";
+
 export class WorldManager {
   private canvas?: HTMLCanvasElement;
   private engine: Engine | NullEngine;
@@ -29,7 +36,7 @@ export class WorldManager {
   private baseAggregateArray: BaseAggregate[];
   private shape: Cuboid | Cylinder;
   private sample?: Sample;
-  private notchParams?: NotchParams;
+  private notchParams?: typeof NotchParams;
   private bodyToMeshScale: number;
   private friction: number;
   private restitution: number;
@@ -46,7 +53,7 @@ export class WorldManager {
     friction = 0.5,
     restitution = 0,
     subTimeStep = 0,
-    notchParams?: NotchParams
+    notchParams?: typeof NotchParams
   ) {
     this.isNullEngine = isNullEngine;
     this.canvas = canvas;
@@ -139,12 +146,50 @@ export class WorldManager {
 
   pauseSimulation() {
     this.scene?.executeOnceBeforeRender(() => {
-      if (this.scene) {
-        new Slicer(this.scene, this.shape).apply();
-      }
+      const aggregates: { vertices: FloatArray; indices: IndicesArray }[] = [];
 
-      delete this.sample;
+      this.scene?.meshes.forEach((mesh) => {
+        if (mesh.name === "aggregate") {
+          const vertices = this.getVerticesData(mesh);
+          const indices = mesh.getIndices();
+
+          if (vertices && indices) {
+            aggregates.push({
+              vertices,
+              indices,
+            });
+          }
+        }
+      });
+
+      self.postMessage(aggregates);
     });
+  }
+
+  private getVerticesData(mesh: Mesh | InstancedMesh | AbstractMesh) {
+    let sourceMesh = mesh;
+    if (mesh instanceof InstancedMesh) {
+      sourceMesh = mesh.sourceMesh;
+    }
+    const data = sourceMesh.getVerticesData(
+      VertexBuffer.PositionKind,
+      true,
+      true
+    );
+
+    if (!data) return [];
+    const temp = Vector3.Zero();
+    let index;
+    for (index = 0; index < data.length; index += 3) {
+      Vector3.TransformCoordinatesFromFloatsToRef(
+        data[index],
+        data[index + 1],
+        data[index + 2],
+        mesh.computeWorldMatrix(true),
+        temp
+      ).toArray(data, index);
+    }
+    return data;
   }
 
   private async getInitializedHavok() {

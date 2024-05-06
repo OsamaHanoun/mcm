@@ -252,7 +252,15 @@ export class Form {
 
         <label>
           Mesh-Body Scale
-          <input type="number" name="engine-scale" value="1" min="1" required />
+          <input
+            type="number"
+            name="engine-scale"
+            value="1"
+            step="0.0001"
+            min="1"
+            max="100000"
+            required
+          />
         </label>
       </div>
     `;

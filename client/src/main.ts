@@ -1,5 +1,15 @@
+import {
+  createBoundingBoxCuboid,
+  createGeometry,
+  exportToSTL,
+  mergeCloseVertices,
+  rebuildWithConvexHull,
+  removeGeometriesOutsideCuboid,
+  removeIntersectionBetweenGeometries,
+} from "@mcm/libs/src/jscad";
 import { Form } from "./form";
 import { addChart } from "./sieve-curve";
+import { transforms } from "@jscad/modeling";
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url), {
   type: "module",
@@ -53,18 +63,53 @@ form.formElement.addEventListener("submit", (event) => {
   form.destroy();
 });
 
-// worker.onmessage = (e: MessageEvent<Message>) => {
-//   const { messageName } = e.data;
+worker.onmessage = (e: any) => {
+  worker.terminate();
+  const geometries: any[] = [];
 
-//   switch (messageName) {
-//     case "stlFile":
-//       downloadSTL(e.data.stlFile);
-//       break;
+  e.data.forEach((aggregate: any) => {
+    geometries.push(createGeometry(aggregate.vertices, aggregate.indices));
+  });
 
-//     default:
-//       break;
-//   }
-// };
+  const cover = 2;
+  const croppedGeometries = removeGeometriesOutsideCuboid(
+    geometries,
+    [25 - cover, 25 - cover, 25 - cover],
+    [0, (25 - cover) / 2, 0]
+  );
+
+  const repairedGeometries = croppedGeometries
+    .map((geom) => rebuildWithConvexHull(geom))
+    .filter((geom) => geom) as any[];
+
+  const boundingBoxGeomMap: Map<any, any> = new Map<any, any>();
+
+  repairedGeometries.forEach((geom) =>
+    boundingBoxGeomMap.set(geom, createBoundingBoxCuboid(geom))
+  );
+
+  const removedIntersectionGeometries = repairedGeometries.map((geom) => {
+    const boundingBoxGeom = boundingBoxGeomMap.get(geom);
+    boundingBoxGeomMap.delete(geom);
+
+    const x = removeIntersectionBetweenGeometries(
+      geom,
+      Array.from(boundingBoxGeomMap.values())
+    );
+
+    boundingBoxGeomMap.set(geom, boundingBoxGeom);
+
+    return x;
+  });
+
+  exportToSTL(
+    removedIntersectionGeometries
+      .map((geom) => mergeCloseVertices(geom, 1))
+      .filter((geom) => geom) as any[],
+    [25, 25, 25],
+    [0, 25 / 2, 0]
+  );
+};
 
 document
   .getElementById("pauseSimulation")
