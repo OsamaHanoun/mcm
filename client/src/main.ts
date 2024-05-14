@@ -71,44 +71,21 @@ worker.onmessage = (e: any) => {
     geometries.push(createGeometry(aggregate.vertices, aggregate.indices));
   });
 
-  const cover = 2;
-  const croppedGeometries = removeGeometriesOutsideCuboid(
-    geometries,
-    [25 - cover, 25 - cover, 25 - cover],
-    [0, (25 - cover) / 2, 0]
-  );
+  // const cover = 2;
+  // const croppedGeometries = removeGeometriesOutsideCuboid(
+  //   geometries,
+  //   [25 - cover, 25 - cover, 25 - cover],
+  //   [0, (25 - cover) / 2, 0]
+  // );
 
-  const repairedGeometries = croppedGeometries
-    .map((geom) => rebuildWithConvexHull(geom))
-    .filter((geom) => geom) as any[];
+  // const repairedGeometries = croppedGeometries
+  //   .map((geom) => rebuildWithConvexHull(geom))
+  //   .filter((geom) => geom) as any[];
 
-  const boundingBoxGeomMap: Map<any, any> = new Map<any, any>();
+  // const removedIntersectionGeometries =
+  //   removeIntersectionBetweenGeometries(repairedGeometries);
 
-  repairedGeometries.forEach((geom) =>
-    boundingBoxGeomMap.set(geom, createBoundingBoxCuboid(geom))
-  );
-
-  const removedIntersectionGeometries = repairedGeometries.map((geom) => {
-    const boundingBoxGeom = boundingBoxGeomMap.get(geom);
-    boundingBoxGeomMap.delete(geom);
-
-    const x = removeIntersectionBetweenGeometries(
-      geom,
-      Array.from(boundingBoxGeomMap.values())
-    );
-
-    boundingBoxGeomMap.set(geom, boundingBoxGeom);
-
-    return x;
-  });
-
-  exportToSTL(
-    removedIntersectionGeometries
-      .map((geom) => mergeCloseVertices(geom, 1))
-      .filter((geom) => geom) as any[],
-    [25, 25, 25],
-    [0, 25 / 2, 0]
-  );
+  exportToSTL(geometries, [25, 25, 25], [0, 25 / 2, 0]);
 };
 
 document

@@ -14,27 +14,22 @@ import { Vec3 } from "@jscad/modeling/src/maths/vec3";
 import QuickHull, { isPointInsideHull } from "quickhull3d/dist/QuickHull";
 
 export const exportToSTL = (geomArray: Geom3[], size: Vec3, center: Vec3) => {
-  const cuboid = primitives.cuboid({
-    center,
-    size,
-  });
+  // const cuboid = primitives.cuboid({
+  //   center,
+  //   size,
+  // });
 
-  let totalVolume = 0;
+  // let totalVolume = 0;
 
-  const filterGeom = geomArray.filter((geom) => {
-    const volume = measurements.measureVolume(geom);
-    totalVolume += volume;
-    return volume > 1;
-  });
+  // const filterGeom = geomArray.filter((geom) => {
+  //   const volume = measurements.measureVolume(geom);
+  //   totalVolume += volume;
+  //   return volume > 1;
+  // });
 
-  console.log("volume fraction = " + (totalVolume / 25 ** 3) * 100);
+  // console.log("volume fraction = " + (totalVolume / 25 ** 3) * 100);
 
-  const stlData: any[] = [];
-  [...filterGeom, cuboid].forEach((geom) => {
-    const x = stlSerializer.serialize({ binary: true }, [geom]);
-
-    stlData.push(x);
-  });
+  const stlData = stlSerializer.serialize({ binary: true }, [...geomArray]);
 
   download(stlData);
 };
@@ -149,11 +144,38 @@ export const mergeCloseVertices = (
 };
 
 export const removeIntersectionBetweenGeometries = (
-  geom: Geom3,
   geomArray: Geom3[]
-) => {
-  return booleans.subtract(geom, ...geomArray);
+): Geom3[] => {
+  const geomWithoutIntersection: Geom3[] = [];
+  const geomMap: Map<Geom3, Geom3> = new Map<Geom3, Geom3>();
+  geomArray.forEach((geom) => geomMap.set(geom, geom));
+
+  for (const geom of geomArray) {
+    const subtractedGeom = geomMap.get(geom) || geom;
+    const center = measurements.measureCenter(subtractedGeom);
+    const scale = 1.3;
+    const scaledGeom = transforms.center(
+      { relativeTo: center },
+      transforms.scale([scale, scale, scale], subtractedGeom)
+    );
+    geomMap.delete(geom);
+
+    for (const otherGeom of geomMap.keys()) {
+      const otherSubtractedGeom = geomMap.get(otherGeom);
+
+      if (otherSubtractedGeom)
+        geomMap.set(
+          otherGeom,
+          booleans.subtract(otherSubtractedGeom, scaledGeom)
+        );
+    }
+
+    if (subtractedGeom) geomWithoutIntersection.push(subtractedGeom);
+  }
+
+  return geomWithoutIntersection;
 };
+
 export const createBoundingBoxCuboid = (geom: Geom3) => {
   const tolerance = 0.001;
   const [min, max] = measurements.measureBoundingBox(geom);
