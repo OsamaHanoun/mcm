@@ -28,7 +28,7 @@ onmessage = async function (evt: MessageEvent<Message>) {
               +formData["container-segments"]
             );
 
-      let notchParams: NotchParams | undefined = undefined;
+      let notchParams: typeof NotchParams | undefined = undefined;
 
       if (formData["has-notch"] === "on") {
         notchParams = {

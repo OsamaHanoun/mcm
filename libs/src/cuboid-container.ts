@@ -87,8 +87,8 @@ export class CuboidContainer {
       box.material = material;
     }
 
-    wallsData.forEach(({ dimX, dimY, dimZ, position }) => {
-      const boxClone = box.clone("box");
+    wallsData.forEach(({ id, dimX, dimY, dimZ, position }) => {
+      const boxClone = box.clone(id);
       boxClone.scaling = new Vector3(dimX, dimY, dimZ);
       boxClone.position = position;
       new PhysicsAggregate(boxClone, PhysicsShapeType.BOX, { mass: 0 });

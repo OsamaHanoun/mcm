@@ -10,6 +10,9 @@ import {
 import { Form } from "./form";
 import { addChart } from "./sieve-curve";
 import { transforms } from "@jscad/modeling";
+import csv from "/AB8_CMG_full.csv?url&raw";
+
+const isDevMode = true;
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url), {
   type: "module",
@@ -20,47 +23,74 @@ canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
 const offscreen = canvas.transferControlToOffscreen();
 
+if (isDevMode) {
+  document.getElementById("canvas-container")?.classList.remove("hide");
+
+  const formDataObj = {
+    "csv-file": csv,
+    "container-shape": "cuboid",
+    "container-width": "100",
+    "container-height": "100",
+    "container-depth": "100",
+    "engine-scale": "1.2",
+  };
+
+  document.querySelectorAll(".hide")?.forEach((element) => {
+    element.classList.remove("hide");
+  });
+
+  worker.postMessage(
+    {
+      messageName: "run",
+      canvas: offscreen,
+      height: canvas.clientHeight,
+      formData: formDataObj,
+    },
+    [offscreen]
+  );
+} else {
+  const form = new Form();
+  form.formElement.addEventListener("submit", (event) => {
+    const target = event.target as HTMLFormElement;
+    const formData = new FormData(target);
+    const formDataObj = Object.fromEntries(formData.entries());
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const csvString = event.target?.result as string;
+
+      formDataObj["csv-file"] = csvString;
+
+      addChart(csvString);
+
+      worker.postMessage(
+        {
+          messageName: "run",
+          canvas: offscreen,
+          height: canvas.clientHeight,
+          formData: formDataObj,
+        },
+        [offscreen]
+      );
+    };
+    reader.readAsText(formDataObj["csv-file"] as File);
+
+    document.querySelectorAll(".hide")?.forEach((element) => {
+      element.classList.remove("hide");
+    });
+
+    event.preventDefault();
+    event.stopPropagation();
+    form.destroy();
+  });
+}
+
 window.addEventListener("resize", () => {
   worker.postMessage({
     messageName: "resize",
     width: canvas.clientWidth,
     height: canvas.clientHeight,
   });
-});
-
-const form = new Form();
-form.formElement.addEventListener("submit", (event) => {
-  const target = event.target as HTMLFormElement;
-  const formData = new FormData(target);
-  const formDataObj = Object.fromEntries(formData.entries());
-
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    const csvString = event.target?.result as string;
-
-    formDataObj["csv-file"] = csvString;
-
-    addChart(csvString);
-
-    worker.postMessage(
-      {
-        messageName: "run",
-        canvas: offscreen,
-        height: canvas.clientHeight,
-        formData: formDataObj,
-      },
-      [offscreen]
-    );
-  };
-  reader.readAsText(formDataObj["csv-file"] as File);
-
-  document.querySelectorAll(".hide")?.forEach((element) => {
-    element.classList.remove("hide");
-  });
-
-  event.preventDefault();
-  event.stopPropagation();
-  form.destroy();
 });
 
 worker.onmessage = (e: any) => {

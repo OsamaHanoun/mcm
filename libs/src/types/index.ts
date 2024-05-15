@@ -3,3 +3,9 @@ export type NotchParams = {
   height: number;
   width: number;
 };
+
+export enum TriggerType {
+  GenerateAggregate = "T1",
+  AddToStatic = "T2",
+  DeleteAggregate = "T3",
+}

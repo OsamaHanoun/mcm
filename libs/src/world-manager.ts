@@ -50,7 +50,7 @@ export class WorldManager {
     baseAggregateArray: BaseAggregate[],
     bodyToMeshScale: number = 1,
     gravity = -9.8,
-    friction = 0.5,
+    friction = 0,
     restitution = 0,
     subTimeStep = 0,
     notchParams?: typeof NotchParams
