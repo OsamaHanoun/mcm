@@ -29,10 +29,13 @@ if (isDevMode) {
   const formDataObj = {
     "csv-file": csv,
     "container-shape": "cuboid",
-    "container-width": "100",
-    "container-height": "100",
-    "container-depth": "100",
-    "engine-scale": "1.2",
+    "container-width": "50",
+    "container-height": "50",
+    "container-depth": "50",
+    "engine-gravity": "-20",
+    "engine-scale": "1.00",
+    "engine-friction": "0",
+    "engine-restitution": "0.7",
   };
 
   document.querySelectorAll(".hide")?.forEach((element) => {

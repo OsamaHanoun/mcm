@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build-vite": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@mcm/libs": "^0.0.1",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@types/papaparse": "^5.3.14",
+    "gh-pages": "^6.1.1",
     "typescript": "^5.2.2",
     "vite": "^5.1.0"
   }

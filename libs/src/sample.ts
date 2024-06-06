@@ -164,8 +164,8 @@ export class Sample {
   private calculateStartLocation() {
     if (this.container instanceof CuboidContainer) {
       const { width, depth } = this.container;
-      this.startLocation.x = -width / 2;
-      this.startLocation.z = -depth / 2;
+      this.startLocation.x = -width / 2 + 0.25 * this.maxDimension;
+      this.startLocation.z = -depth / 2 + 0.25 * this.maxDimension;
     } else if (this.container instanceof CylinderContainer) {
       const { radius } = this.container;
       this.startLocation.x = -radius * 2 ** 0.5 * 0.5;
@@ -274,13 +274,6 @@ export class Sample {
         zDim,
         color: Color4.FromColor3(Color3.Yellow(), 0.7),
       },
-      // {
-      //   id: TriggerType.AddToStatic,
-      //   yPosition: (this.startLocation.y - 2) * this.maxDimension,
-      //   xDim,
-      //   zDim,
-      //   color: Color4.FromColor3(Color3.Red(), 0.7),
-      // },
       {
         id: TriggerType.DeleteAggregate,
         yPosition: -1,
@@ -317,14 +310,10 @@ export class Sample {
 
   private handleTriggers() {
     const observable = this.physicsEngine.onTriggerCollisionObservable;
-    const totalPerLayer = this.grid.x * this.grid.z;
+    const totalPerLayer = this.grid.x * this.grid.z * 0.9;
     const createAggregateBody = this.scene.getMeshByName(
       TriggerType.GenerateAggregate
     )?.physicsBody as PhysicsBody;
-    // const addToStaticMesh = this.scene.getMeshByName(
-    //   TriggerType.AddToStatic
-    // ) as Mesh;
-    // const addToStaticBody = addToStaticMesh.physicsBody as PhysicsBody;
     const removeAggregateBody = this.scene.getMeshByName(
       TriggerType.DeleteAggregate
     )?.physicsBody;
@@ -334,7 +323,7 @@ export class Sample {
 
     let countTriggerExited = 0;
     let lastCollisionTime = 0;
-    const timeoutDuration = 5000;
+    const timeoutDuration = 6000;
 
     this.scene.registerBeforeRender(() => {
       const currentTime = performance.now();
@@ -344,28 +333,31 @@ export class Sample {
         currentTime - lastCollisionTime >= timeoutDuration
       ) {
         lastCollisionTime = currentTime;
-
+        countTriggerExited = 0;
         this.currentLocation.y = this.currentLocation.y + 1;
 
         createAggregateBody.disablePreStep = false;
         createAggregateBody.transformNode.position.y =
           this.currentLocation.y * this.maxDimension;
 
-        // addToStaticBody.disablePreStep = false;
-        // addToStaticBody.transformNode.position.y =
-        //   (this.currentLocation.y - 2) * this.maxDimension;
-
+        const groundPositionY =
+          (this.currentLocation.y - 2) * this.maxDimension;
         groundBody.disablePreStep = false;
-        groundBody.transformNode.position.y =
-          (this.currentLocation.y - 1.5) * this.maxDimension;
+        groundBody.transformNode.position.y = groundPositionY;
 
         this.dynamicBodyMeshMap.forEach((_, body) => {
           body.setMotionType(PhysicsMotionType.STATIC);
         });
 
         this.staticBodyMeshMap.forEach((mesh, body) => {
-          body.dispose();
-          mesh.setEnabled(false);
+          const boundingBox = mesh.getBoundingInfo().boundingBox;
+
+          if (groundPositionY > boundingBox.maximumWorld.y) {
+            body.dispose();
+            mesh.setEnabled(false);
+          } else {
+            this.dynamicBodyMeshMap.set(body, mesh);
+          }
         });
 
         this.staticBodyMeshMap = this.dynamicBodyMeshMap;
@@ -376,16 +368,25 @@ export class Sample {
           this.scene.executeOnceBeforeRender(() => {
             this.addLayerOfAggregates();
             createAggregateBody.disablePreStep = true;
-            // addToStaticBody.disablePreStep = true;
           })
         );
       } else if (this.grid.y === this.currentLocation.y) {
         this.dynamicBodyMeshMap.forEach((_, body) => {
-          body.setMotionType(PhysicsMotionType.STATIC);
+          body.dispose();
         });
 
-        this.meshToPhysicsBodyMap.forEach((mesh) => {
-          mesh.setEnabled(true);
+        this.meshToPhysicsBodyMap.forEach((mesh, body, map) => {
+          const boundingBox = mesh.getBoundingInfo().boundingBox;
+
+          if (
+            this.startLocation.y + this.container.height >
+            boundingBox.minimumWorld.y
+          ) {
+            mesh.setEnabled(true);
+          } else {
+            mesh.dispose();
+            map.delete(body);
+          }
         });
       }
     });
@@ -403,21 +404,13 @@ export class Sample {
         bodyPassedT1Set.add(collider);
         countTriggerExited++;
 
-        if (totalPerLayer === countTriggerExited) {
+        if (totalPerLayer < countTriggerExited) {
           lastCollisionTime = performance.now();
 
           this.addLayerOfAggregates();
           countTriggerExited = 0;
         }
-      }
-      //  else if (
-      //   type === PhysicsEventType.TRIGGER_ENTERED &&
-      //   collidedAgainst === addToStaticBody
-      // ) {
-      //   collider.setMotionType(PhysicsMotionType.STATIC);
-      //   this.staticBodyMeshMap.set(collider, mesh);
-      // }
-      else if (
+      } else if (
         type === PhysicsEventType.TRIGGER_ENTERED &&
         collidedAgainst === removeAggregateBody
       ) {
