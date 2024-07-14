@@ -10,7 +10,7 @@ import {
 import { Form } from "./form";
 import { addChart } from "./sieve-curve";
 import { transforms } from "@jscad/modeling";
-import csv from "/AB8_CMG_full.csv?url&raw";
+import csv from "/AB16.csv?url&raw";
 
 const isDevMode = true;
 
@@ -29,13 +29,13 @@ if (isDevMode) {
   const formDataObj = {
     "csv-file": csv,
     "container-shape": "cuboid",
-    "container-width": "50",
-    "container-height": "50",
-    "container-depth": "50",
-    "engine-gravity": "-20",
-    "engine-scale": "1.00",
-    "engine-friction": "0",
-    "engine-restitution": "0.7",
+    "container-width": "30",
+    "container-height": "30",
+    "container-depth": "30",
+    "engine-gravity": "-35",
+    "engine-scale": "1.05",
+    "engine-friction": "0.5",
+    "engine-restitution": "0.5",
   };
 
   document.querySelectorAll(".hide")?.forEach((element) => {

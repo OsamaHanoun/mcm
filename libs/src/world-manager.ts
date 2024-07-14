@@ -194,7 +194,7 @@ export class WorldManager {
 
   private async getInitializedHavok() {
     const havokInstance = await HavokPhysics();
-    return new HavokPlugin(true, havokInstance);
+    return new HavokPlugin(false, havokInstance);
   }
 
   private createScene(physicsEngine: HavokPlugin) {

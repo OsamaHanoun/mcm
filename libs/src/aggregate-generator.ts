@@ -5,10 +5,18 @@ import { BaseAggregate } from "./base-aggregate.js";
 export class AggregateGenerator {
   static generate(aggregate: BaseAggregate): Mesh {
     const { a, b, c, numCuts } = aggregate;
-    const points: any = [];
+    const [r1, r2, r3] = [a / 2, b / 2, c / 2];
+    const points: any = [
+      [r1, 0, 0],
+      [-r1, 0, 0],
+      [0, r2, 0],
+      [0, -r2, 0],
+      [0, 0, r3],
+      [0, 0, -r3],
+    ];
 
-    for (let i = 0; i < numCuts; i++) {
-      points.push(this.getRandomPointOnEllipsoid(a, b, c));
+    for (let i = 0; i < numCuts - 6; i++) {
+      points.push(this.getRandomPointOnEllipsoid(r1, r2, r3));
     }
 
     const quickHull = new QuickHull(points);
@@ -21,7 +29,7 @@ export class AggregateGenerator {
       vertex: vertices,
       face: faces,
     };
-    const Mesh = MeshBuilder.CreatePolyhedron('aggregate', {
+    const Mesh = MeshBuilder.CreatePolyhedron("aggregate", {
       custom: heptagonalPrism,
     });
     Mesh.rotation = this.getRandomRotation();
@@ -50,16 +58,16 @@ export class AggregateGenerator {
   }
 
   private static getRandomPointOnEllipsoid(
-    a: number,
-    b: number,
-    c: number
+    r1: number,
+    r2: number,
+    r3: number
   ): [x: number, y: number, z: number] {
     const azimuthalAngle = Math.random() * 2 * Math.PI;
     const sinPolarAngle = 2 * Math.random() - 1;
     const polarAngle = Math.asin(sinPolarAngle);
-    const x = a * Math.cos(polarAngle) * Math.cos(azimuthalAngle);
-    const y = b * Math.cos(polarAngle) * Math.sin(azimuthalAngle);
-    const z = c * sinPolarAngle;
+    const x = r1 * Math.cos(polarAngle) * Math.cos(azimuthalAngle);
+    const y = r2 * Math.cos(polarAngle) * Math.sin(azimuthalAngle);
+    const z = r3 * sinPolarAngle;
 
     return [x, y, z];
   }

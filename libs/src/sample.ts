@@ -124,17 +124,15 @@ export class Sample {
   }
 
   private calculateMaxDimension() {
-    this.maxDimension = this.baseAggregateArray.reduce(
-      (previousValue, currentValue) => {
+    this.maxDimension =
+      this.baseAggregateArray.reduce((previousValue, currentValue) => {
         return Math.max(
           previousValue,
           currentValue.a,
           currentValue.b,
           currentValue.c
         );
-      },
-      0
-    );
+      }, 0) * 0.6;
   }
 
   private calculateGrid() {
@@ -212,7 +210,7 @@ export class Sample {
     const y =
       this.startLocation.y +
       this.currentLocation.y * this.maxDimension +
-      this.maxDimension;
+      this.maxDimension * 1.4;
     const z =
       this.startLocation.z +
       this.currentLocation.z * this.maxDimension -
@@ -272,7 +270,7 @@ export class Sample {
         yPosition: this.startLocation.y + this.maxDimension,
         xDim,
         zDim,
-        color: Color4.FromColor3(Color3.Yellow(), 0.7),
+        color: Color4.FromColor3(Color3.Red(), 0.7),
       },
       {
         id: TriggerType.DeleteAggregate,
@@ -310,7 +308,7 @@ export class Sample {
 
   private handleTriggers() {
     const observable = this.physicsEngine.onTriggerCollisionObservable;
-    const totalPerLayer = this.grid.x * this.grid.z * 0.9;
+    const totalPerLayer = this.grid.x * this.grid.z;
     const createAggregateBody = this.scene.getMeshByName(
       TriggerType.GenerateAggregate
     )?.physicsBody as PhysicsBody;
@@ -323,7 +321,7 @@ export class Sample {
 
     let countTriggerExited = 0;
     let lastCollisionTime = 0;
-    const timeoutDuration = 6000;
+    const timeoutDuration = 20000;
 
     this.scene.registerBeforeRender(() => {
       const currentTime = performance.now();
@@ -341,9 +339,10 @@ export class Sample {
           this.currentLocation.y * this.maxDimension;
 
         const groundPositionY =
-          (this.currentLocation.y - 2) * this.maxDimension;
+          (this.currentLocation.y - 3.5) * this.maxDimension;
         groundBody.disablePreStep = false;
-        groundBody.transformNode.position.y = groundPositionY;
+        groundBody.transformNode.position.y =
+          groundPositionY < 0 ? 0 : groundPositionY;
 
         this.dynamicBodyMeshMap.forEach((_, body) => {
           body.setMotionType(PhysicsMotionType.STATIC);
@@ -404,7 +403,7 @@ export class Sample {
         bodyPassedT1Set.add(collider);
         countTriggerExited++;
 
-        if (totalPerLayer < countTriggerExited) {
+        if (totalPerLayer === countTriggerExited) {
           lastCollisionTime = performance.now();
 
           this.addLayerOfAggregates();

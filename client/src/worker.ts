@@ -29,7 +29,6 @@ onmessage = async function (evt: MessageEvent<Message>) {
             );
 
       let notchParams: typeof NotchParams | undefined = undefined;
-
       if (formData["has-notch"] === "on") {
         notchParams = {
           direction: formData["notch-direction"],
